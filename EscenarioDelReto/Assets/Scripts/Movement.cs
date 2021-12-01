@@ -16,12 +16,6 @@ public class Movement : MonoBehaviour
     private Vector3 current;
     private Vector3 next;
 
-    /* void Awake(){
-
-
-    } */
-
-
     // Start is called before the first frame update
     void Start()
     {
@@ -46,8 +40,7 @@ public class Movement : MonoBehaviour
             transform.LookAt(next);
         } else{
             Destroy(gameObject,.0f);
-            Debug.Log("Recorrido Finalizado");
-            Debug.Log("Destruccion de Agente");
+            Debug.Log("Recorrido Finalizado. Destruccion de Vehículo");
         }
     }
 }

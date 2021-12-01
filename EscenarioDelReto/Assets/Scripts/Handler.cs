@@ -12,11 +12,13 @@ public class Handler : MonoBehaviour
     // Use this for initialization
     public GameObject[] carPrefab;
     public GameObject parkingSlot;
+    //private GameObject[] parkings;
     System.Threading.Thread SocketThread;
-    volatile bool keepReading = false;
+    volatile bool keepReading = true;
     string data = null;
     bool callAgentController = true;
-    bool createParkings = true;
+    bool simulationFinished = false;
+    float time;
 
     void Start()
     {
@@ -29,6 +31,13 @@ public class Handler : MonoBehaviour
         if (data != null && callAgentController){
             callAgentController = false;
             agentController();
+        }
+        if (simulationFinished){
+            GameObject[] parkings = GameObject.FindGameObjectsWithTag("ParkingLot");
+            foreach (GameObject park in parkings){
+                Destroy(park, .0f);
+            }
+            simulationFinished = false;
         }
     }
 
@@ -76,14 +85,14 @@ public class Handler : MonoBehaviour
             listener.Bind(localEndPoint);
             listener.Listen(10);
        
-			while (true) { 		
+			while (keepReading) {	
                 // Program is suspended while waiting for an incoming connection.
                 Debug.Log("Waiting for Connection");     //It works
 
                 handler = listener.Accept();
                 Debug.Log("Client Connected");     //It doesn't work
 
-                byte[] SendBytes = System.Text.Encoding.Default.GetBytes("I will send key");
+                byte[] SendBytes = System.Text.Encoding.Default.GetBytes("Successful Connection");
                 handler.Send(SendBytes); // dar al cliente
 
                 int bytesRec;
@@ -97,7 +106,10 @@ public class Handler : MonoBehaviour
                     data = serverMessage;
                     Debug.Log("Message received as: " + serverMessage);
                 }
-                Debug.Log("Total data: " + data);
+
+                simulationFinished = true;
+                Debug.Log("Simulación Finalizada");
+                Debug.Log("Destrucción de Espacios de Estacionamiento");
 			}         
 		}         
 		catch (SocketException socketException) {             
@@ -107,67 +119,53 @@ public class Handler : MonoBehaviour
 
     
     void agentController(){
-        
-        if(createParkings){
-            createParkings = false;
+        string[] totalData = data.Split(':');
 
-            Debug.Log("Entre");
-
-            string[] parkingsPos = data.Split('%');
-
-            foreach(var park in parkingsPos){
-                string[] cor = park.Split(',');
-                Instantiate(parkingSlot, new Vector3(float.Parse(cor[0]) * 10 - 3f, 4.29f, float.Parse(cor[1]) * 10 -3f), Quaternion.identity);
-            }
-
-            data = null;
-            callAgentController = true;
-            return;
-        }
- 
-        Debug.Log("HOLA -----------" + data);
-
-        string[] paths = data.Split('!');
-        Debug.Log("CANTIDAD PATHS: " + (paths.Length - 1));
-        
-        // Iteracion sobre paths, cantidad de instancias a crear
-        for(int i = 0; i < paths.Length - 1; i++)
-        {
-            // Obtencion de las coordenadas enviadas desde Python (para 1 instancia)
-            string[] cords = paths[i].Split('/');
-
-            int numSteps = cords.Length;
-            Vector3[] path = new Vector3[numSteps];
+        if (totalData[0] == "vehicles"){
+            string[] paths = totalData[1].Split('!');
             
-            // Creacion del path para la instancia de la iteracion actual
-            int idx = 0;
-            for(int j = 0; j < cords.Length - 1; j++)
+            // Iteracion sobre paths, cantidad de instancias a crear
+            for(int i = 0; i < paths.Length - 1; i++)
             {
-                
-                string[] cor = cords[j].Split(',');
-                //System.Console.WriteLine($"{float.Parse(cor[0])} - {float.Parse(cor[1])}");
+                // Obtencion de las coordenadas enviadas desde Python (para 1 instancia)
+                string[] cords = paths[i].Split('/');
 
-                path[idx] = new Vector3(float.Parse(cor[0]) * 10, 6.2f, float.Parse(cor[1]) * 10);
+                int numSteps = cords.Length;
+                Vector3[] path = new Vector3[numSteps];
                 
-                //Debug.Log(path[idx]);
+                // Creacion del path para la instancia de la iteracion actual
+                int idx = 0;
+                for(int j = 0; j < cords.Length - 1; j++){     
+                    string[] cor = cords[j].Split(',');
+                    path[idx] = new Vector3(float.Parse(cor[0]) * 10, 6.2f, float.Parse(cor[1]) * 10);
+                    idx += 1;
+                }
 
-                idx += 1;
+                int vInt = Random.Range(0, 7);
+
+                GameObject car = Instantiate(carPrefab[vInt], path[0], Quaternion.identity);
+                car.GetComponent<Movement>().path = path;
+                car.GetComponent<Movement>().timeStep = time;
             }
-
-            int vInt = Random.Range(0, 7);
-            Debug.Log("VEHICLE: " + vInt);
-
-            GameObject car = Instantiate(carPrefab[vInt], path[0], Quaternion.identity);
-            car.GetComponent<Movement>().path = path;
+        }
+        else if (totalData[0] == "parkings"){
+            string[] parkingsPos = totalData[1].Split('/');
+            foreach (var park in parkingsPos){
+                string[] cor = park.Split(',');
+                GameObject parking = Instantiate(parkingSlot, new Vector3(float.Parse(cor[0]) * 10 - 3f, 4.29f, float.Parse(cor[1]) * 10 -3f), Quaternion.identity);
+                parking.tag = "ParkingLot";
+            }
+        }
+        else if (totalData[0] == "timeStep"){
+            float fTime = float.Parse(totalData[1]);
+            time = fTime;
         }
 
         data = null;
         callAgentController = true;
-
     }
 
-    void stopServer()
-    {
+    void stopServer(){
         keepReading = false;
 
         //stop thread
@@ -183,8 +181,7 @@ public class Handler : MonoBehaviour
         }
     }
 
-    void OnDisable()
-    {
+    void OnDisable(){
         stopServer();
     }
 }

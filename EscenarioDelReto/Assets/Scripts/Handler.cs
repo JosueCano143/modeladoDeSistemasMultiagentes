@@ -5,14 +5,18 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using Random=UnityEngine.Random;
 
 public class Handler : MonoBehaviour
 {
     // Use this for initialization
-    public GameObject carPrefab;
+    public GameObject[] carPrefab;
+    public GameObject parkingSlot;
     System.Threading.Thread SocketThread;
     volatile bool keepReading = false;
     string data = null;
+    bool callAgentController = true;
+    bool createParkings = true;
 
     void Start()
     {
@@ -22,7 +26,8 @@ public class Handler : MonoBehaviour
 
     void Update()
     {
-        if (data != null){
+        if (data != null && callAgentController){
+            callAgentController = false;
             agentController();
         }
     }
@@ -89,7 +94,7 @@ public class Handler : MonoBehaviour
                     Array.Copy(bytes, 0, incommingData, 0, bytesRec);
                     // Convert byte array to string message.
                     string serverMessage = System.Text.Encoding.ASCII.GetString(incommingData);
-                    data += serverMessage;
+                    data = serverMessage;
                     Debug.Log("Message received as: " + serverMessage);
                 }
                 Debug.Log("Total data: " + data);
@@ -100,36 +105,65 @@ public class Handler : MonoBehaviour
 		}
     }
 
+    
     void agentController(){
-        Debug.Log("Data in controller: " + data);
+        
+        if(createParkings){
+            createParkings = false;
 
-        string[] words = data.Split('$');
+            Debug.Log("Entre");
 
-        int numAgents = Int32.Parse(words[0]);
-        data = words[1];
+            string[] parkingsPos = data.Split('%');
 
-        string[] coordenadas = data.Split('/');
+            foreach(var park in parkingsPos){
+                string[] cor = park.Split(',');
+                Instantiate(parkingSlot, new Vector3(float.Parse(cor[0]) * 10 + 4f, 4.28f, float.Parse(cor[1]) * 10 + 3.5f), Quaternion.identity);
+            }
 
-        int numSteps = coordenadas.Length;
-        Vector3[] path = new Vector3[numSteps];
-
-        int idx = 0;
-        foreach (var word in coordenadas)
-        {
-            //System.Console.WriteLine($"{word}");
-            String[] cor = word.Split(',');
-            System.Console.WriteLine($"{float.Parse(cor[0])} - {float.Parse(cor[1])}");
-
-            path[idx] = new Vector3(float.Parse(cor[0]), 6.2f, float.Parse(cor[1]));
-            
-            Debug.Log(path[idx]);
-
-            idx += 1;
+            data = null;
+            callAgentController = true;
+            return;
         }
-        GameObject car = Instantiate(carPrefab, new Vector3(0.0f, 6.2f, 41.5f), Quaternion.identity);
-        car.GetComponent<Movement>().path = path;
+ 
+        Debug.Log("HOLA -----------" + data);
+
+        string[] paths = data.Split('!');
+        Debug.Log("CANTIDAD PATHS: " + (paths.Length - 1));
+        
+        // Iteracion sobre paths, cantidad de instancias a crear
+        for(int i = 0; i < paths.Length - 1; i++)
+        {
+            // Obtencion de las coordenadas enviadas desde Python (para 1 instancia)
+            string[] cords = paths[i].Split('/');
+
+            int numSteps = cords.Length;
+            Vector3[] path = new Vector3[numSteps];
+            
+            // Creacion del path para la instancia de la iteracion actual
+            int idx = 0;
+            for(int j = 0; j < cords.Length - 1; j++)
+            {
+                
+                string[] cor = cords[j].Split(',');
+                //System.Console.WriteLine($"{float.Parse(cor[0])} - {float.Parse(cor[1])}");
+
+                path[idx] = new Vector3(float.Parse(cor[0]) * 10, 6.2f, float.Parse(cor[1]) * 10);
+                
+                //Debug.Log(path[idx]);
+
+                idx += 1;
+            }
+
+            int vInt = Random.Range(0, 4);
+            Debug.Log("VEHICLE: " + vInt);
+
+            GameObject car = Instantiate(carPrefab[vInt], path[0], Quaternion.identity);
+            car.GetComponent<Movement>().path = path;
+        }
 
         data = null;
+        callAgentController = true;
+
     }
 
     void stopServer()

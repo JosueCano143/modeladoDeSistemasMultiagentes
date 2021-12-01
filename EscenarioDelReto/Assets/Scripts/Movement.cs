@@ -11,9 +11,9 @@ public class Movement : MonoBehaviour
 {
   
     public Vector3[] path;
-    private int step = 0;
+    private int step = 1;
     private float speed;
-    public float timeStep = 3.0f;
+    public float timeStep = 1.0f;
     private float time = 0.0f;
     private Vector3 previous;
     private Vector3 current;
@@ -31,7 +31,7 @@ public class Movement : MonoBehaviour
         speed = 10/timeStep;
         foreach (var word in path)
         {
-            Debug.Log("Path: " + word);
+            //Debug.Log("Path: " + word);
         }
 
         previous = new Vector3(0,0,0);
@@ -44,6 +44,9 @@ public class Movement : MonoBehaviour
     void Update()
     {
         time += Time.deltaTime;
+
+        //Debug.Log("tIME : " + time);
+
         if (current != previous){
             transform.Translate(new Vector3(0,0,speed*Time.deltaTime));
         } else{
@@ -59,13 +62,13 @@ public class Movement : MonoBehaviour
         //Debug.Log(transform.position.ToString() + ", " + current.ToString());
         float dis = Vector3.Distance(transform.position, current);
         if (dis < 0.5 && step < numSteps - 1){
-            Debug.Log("Next Position = " + current);
+            //Debug.Log("Next Position = " + current);
             step += 1;
             current = path[step];
             transform.LookAt(current);
 
             if(current == path[numSteps - 1]){
-                Destroy(gameObject,.5f);
+                Destroy(gameObject,.0f);
                 Debug.Log("Recorrido Finalizado");
                 Debug.Log("Destruccion de Agente");
             }   

@@ -9,15 +9,12 @@ using System.Threading;
 
 public class Movement : MonoBehaviour
 {
-  
     public Vector3[] path;
     private int step = 1;
     private float speed;
     public float timeStep = 1.0f;
-    private float time = 0.0f;
-    private Vector3 previous;
     private Vector3 current;
-    int numSteps = 0;
+    private Vector3 next;
 
     /* void Awake(){
 
@@ -29,50 +26,28 @@ public class Movement : MonoBehaviour
     void Start()
     {
         speed = 10/timeStep;
-        foreach (var word in path)
-        {
-            //Debug.Log("Path: " + word);
-        }
-
-        previous = new Vector3(0,0,0);
-        current = path[step];
-        transform.LookAt(current);
-        numSteps = path.Length;
+        InvokeRepeating("stepController", 0.0f, timeStep);
     }
 
     // Update is called once per frame
     void Update()
     {
-        time += Time.deltaTime;
-
-        //Debug.Log("tIME : " + time);
-
-        if (current != previous){
+        if (next != current){
             transform.Translate(new Vector3(0,0,speed*Time.deltaTime));
-        } else{
-            // Cuando se detiene
-            
         }
-        checkPosition();
-        //transform.Translate(new Vector3(0,0,speed*Time.deltaTime));
     }
 
-    void checkPosition(){
-
-        //Debug.Log(transform.position.ToString() + ", " + current.ToString());
-        float dis = Vector3.Distance(transform.position, current);
-        if (dis < 0.5 && step < numSteps - 1){
-            //Debug.Log("Next Position = " + current);
-            step += 1;
-            current = path[step];
-            transform.LookAt(current);
-
-            if(current == path[numSteps - 1]){
-                Destroy(gameObject,.0f);
-                Debug.Log("Recorrido Finalizado");
-                Debug.Log("Destruccion de Agente");
-            }   
+    void stepController(){
+        current = path[step];
+        transform.position = current;
+        step += 1;
+        if(step != path.Length-1){
+            next = path[step];
+            transform.LookAt(next);
+        } else{
+            Destroy(gameObject,.0f);
+            Debug.Log("Recorrido Finalizado");
+            Debug.Log("Destruccion de Agente");
         }
     }
 }
-

@@ -117,7 +117,7 @@ public class Handler : MonoBehaviour
 
             foreach(var park in parkingsPos){
                 string[] cor = park.Split(',');
-                Instantiate(parkingSlot, new Vector3(float.Parse(cor[0]) * 10 + 4f, 4.28f, float.Parse(cor[1]) * 10 + 3.5f), Quaternion.identity);
+                Instantiate(parkingSlot, new Vector3(float.Parse(cor[0]) * 10 - 3f, 4.29f, float.Parse(cor[1]) * 10 -3f), Quaternion.identity);
             }
 
             data = null;
@@ -154,7 +154,7 @@ public class Handler : MonoBehaviour
                 idx += 1;
             }
 
-            int vInt = Random.Range(0, 4);
+            int vInt = Random.Range(0, 7);
             Debug.Log("VEHICLE: " + vInt);
 
             GameObject car = Instantiate(carPrefab[vInt], path[0], Quaternion.identity);
